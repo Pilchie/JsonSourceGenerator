@@ -20,79 +20,70 @@ public class SourceCodeBuilder
         isEnabledByDefault: true);
 
     private readonly INamedTypeSymbol _attributeSymbol;
-    private readonly INamedTypeSymbol _notifySymbol;
+    private readonly INamedTypeSymbol _jsonElementSymbol;
     private readonly INamedTypeSymbol _objectSymbol;
     private readonly Action<Diagnostic> _reportDiagnostic;
 
     public SourceCodeBuilder(
         INamedTypeSymbol attributeSymbol,
-        INamedTypeSymbol notifySymbol,
+        INamedTypeSymbol jsonElementSymbol,
         INamedTypeSymbol objectSymbol,
         Action<Diagnostic> reportDiagnostic)
     {
         _attributeSymbol = attributeSymbol ?? throw new ArgumentNullException(nameof(attributeSymbol));
-        _notifySymbol = notifySymbol ?? throw new ArgumentNullException(nameof(notifySymbol));
+        _jsonElementSymbol = jsonElementSymbol ?? throw new ArgumentNullException(nameof(jsonElementSymbol));
         _objectSymbol = objectSymbol ?? throw new ArgumentNullException(nameof(objectSymbol));
         _reportDiagnostic = reportDiagnostic ?? throw new ArgumentNullException(nameof(reportDiagnostic));
     }
 
 
-    public bool TryGeneratePartialType(
-        INamedTypeSymbol type,
-        ImmutableArray<IFieldSymbol> fields,
-        [NotNullWhen(true)] out string? partialType)
+    public bool TryGenerateSource(
+        INamedTypeSymbol interfaceTypeToWrap,
+        [NotNullWhen(true)] out string? content)
     {
         using var codeTextWriter = new SourceCodeWriter();
-        partialType = null;
+        content = null;
 
-        if (TryGeneratePartialType(codeTextWriter, type, fields))
+        if (TryGenerateSource(codeTextWriter, interfaceTypeToWrap))
         {
-            partialType = codeTextWriter.ToString();
+            content = codeTextWriter.ToString();
             return true;
         }
 
         return false;
     }
 
-    private bool TryGeneratePartialType(
+    private bool TryGenerateSource(
         SourceCodeWriter output,
-        INamedTypeSymbol type,
-        ImmutableArray<IFieldSymbol> fields)
+        INamedTypeSymbol interfaceTypeToWrap)
     {
-        using (output.WriteOutNamespace(type))
+        using (output.WriteOutNamespace(interfaceTypeToWrap))
         {
             // Handle nested class
             var indentations = ImmutableArray<IDisposable>.Empty;
-            if (!type.ContainingSymbol.Equals(type.ContainingNamespace, SymbolEqualityComparer.Default))
+            if (!interfaceTypeToWrap.ContainingSymbol.Equals(interfaceTypeToWrap.ContainingNamespace, SymbolEqualityComparer.Default))
             {
-                var containingTypes = type.GetContainingTypes().ToImmutableArray();
+                var containingTypes = interfaceTypeToWrap.GetContainingTypes().ToImmutableArray();
                 var builder =  ImmutableArray.CreateBuilder<IDisposable>(containingTypes.Length);
                 foreach (var containingType in containingTypes.Reverse())
                 {
-                    builder.Add(WriteOutPartialTypeDeclaration(output, containingType));
+                    builder.Add(WriteOutTypeDeclarations(output, containingType));
                 }
 
                 indentations = builder.MoveToImmutable();
             }
 
             // Write out type declaration
-            using (WriteOutPartialTypeDeclaration(output, type, _notifySymbol))
+            using (WriteOutTypeDeclarations(output, interfaceTypeToWrap))
             {
-                // If the type doesn't inherit from a type that implements INotifyPropertyChanged already,
-                // or inherits from a type that _will_ inherit from it after the source generator runs
-                // implement the PropertyChanged event.
-                if (!type.AllInterfaces.Any(t => t.Equals(_notifySymbol, SymbolEqualityComparer.Default)) &&
-                    !type.AnyBaseTypesHaveFieldsWithAttribute(_attributeSymbol))
+                foreach (var symbol in interfaceTypeToWrap.GetMembers().Where(s => s.Kind == SymbolKind.Property))
                 {
-                    output.WriteOutPropertyChangedImplementation();
-                }
-
-                // /create properties for each field 
-                foreach (var fieldSymbol in fields)
-                {
-                    if (!TryWriteOutProperty(output, fieldSymbol, _attributeSymbol, location => _reportDiagnostic(Diagnostic.Create(UnableToGenerateName, location))))
+                    if (symbol is IPropertySymbol propertySymbol)
                     {
-                        return false;
+                        if (!TryWriteOutProperty(output, propertySymbol, location => _reportDiagnostic(Diagnostic.Create(UnableToGenerateName, location))))
+                        {
+                            return false;
+                        }
                     }
                 }
             }
@@ -106,124 +97,69 @@ public class SourceCodeBuilder
         }
     }
 
-    private IDisposable WriteOutPartialTypeDeclaration(
+    private static IDisposable WriteOutTypeDeclarations(
         SourceCodeWriter output,
-        INamedTypeSymbol type,
-        params INamedTypeSymbol[] additionalInterfaces)
+        INamedTypeSymbol interfaceTypeToWrap)
     {
-        var accessibility = type.DeclaredAccessibility switch
+        var typeName = interfaceTypeToWrap.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+        using (output.WriteOutTypeDeclaration("public", "static", "class", typeName + "_JsonWrapperExtensions", ImmutableArray<string>.Empty, Array.Empty<string>()))
         {
-            Accessibility.Public => "public",
-            Accessibility.Internal => "internal",
-            Accessibility.Protected => "protected",
-            Accessibility.Private => "private",
-            Accessibility.ProtectedAndInternal => "private protected",
-            Accessibility.ProtectedOrInternal => "protected internal",
-            _ => throw new InvalidOperationException()
-        };
-        var modifiers = GetModifiersString(type);
-        var typeKind = GetTypeKindString(type);
-        var typeName = type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
-        var inheritsList = GetInherits(type, _objectSymbol, additionalInterfaces);
-        var implementsList = GetImplements(type, additionalInterfaces);
-
-        return output.WriteOutPartialTypeDeclaration(accessibility, modifiers, typeKind, typeName, inheritsList, implementsList);
-
-        static string GetModifiersString(INamedTypeSymbol type)
-        {
-            var modifiers = "partial";
-            if (type.IsAbstract)
+            using (output.WriteBlock($"public static {typeName} As{typeName}(this System.Text.Json.JsonElement element)"))
             {
-                modifiers = "abstract " + modifiers;
+                output.WriteLine($"return new {typeName}_JsonWrapper(element);");
             }
-            if (type.IsSealed)
-            {
-                modifiers = "sealed " + modifiers;
-            }
-            if (type.IsStatic)
-            {
-                modifiers = "static " + modifiers;
-            }
-            return modifiers;
         }
 
-        static string GetTypeKindString(INamedTypeSymbol type)
-            => (type.IsRecord, type.TypeKind) switch
-            {
-                (true, TypeKind.Struct) => "record struct",
-                (true, TypeKind.Class) => "record",
-                (false, TypeKind.Class) => "class",
-                (false, TypeKind.Enum) => "enum",
-                (false, TypeKind.Interface) => "interface",
-                (false, TypeKind.Struct) => "struct",
-                _ => throw new NotImplementedException(),
-            };
-
-        static ImmutableArray<string> GetInherits(
-            INamedTypeSymbol type,
-            INamedTypeSymbol systemObject,
-            INamedTypeSymbol[] additionalInterfaces)
+        output.WriteNewLine();
+        var block = output.WriteOutTypeDeclaration("internal", string.Empty, "class", typeName + "_JsonWrapper", ImmutableArray<string>.Empty, new[] { typeName });
+        output.WriteLine("private readonly System.Text.Json.JsonElement _element;");
+        output.WriteNewLine();
+        using (output.WriteBlock($"public {typeName}_JsonWrapper(System.Text.Json.JsonElement element)"))
         {
-            var builder = ImmutableArray.CreateBuilder<string>();
-
-            var baseType = type.BaseType;
-            if (baseType is not null &&
-                !baseType.Equals(systemObject, SymbolEqualityComparer.Default))
-            {
-                builder.Add(baseType.ToDisplayString());
-            }
-
-            if (type.TypeKind == TypeKind.Interface)
-            {
-                builder.AddRange(type.AllInterfaces.Concat(additionalInterfaces).Select(i => i.ToDisplayString()));
-            }
-
-            return builder.ToImmutable(); ;
+            output.WriteLine("_element = element;");
         }
-
-        static string[] GetImplements(
-            INamedTypeSymbol type,
-            INamedTypeSymbol[] additionalInterfaces)
-        {
-            return type.TypeKind != TypeKind.Interface
-                ? type.AllInterfaces.Concat(additionalInterfaces).Select(i => i.ToDisplayString()).ToArray()
-                : Array.Empty<string>();
-        }
+        return block;
     }
 
-    private static bool TryWriteOutProperty(SourceCodeWriter output, IFieldSymbol fieldSymbol, INamedTypeSymbol attributeSymbol, Action<Location?> reportDiagnostic)
+    private static bool TryWriteOutProperty(SourceCodeWriter output, IPropertySymbol propertySymbol, Action<Location?> reportDiagnostic)
     {
         // get the name and type of the field
-        var fieldName = fieldSymbol.Name;
-        var fieldType = fieldSymbol.Type.ToDisplayString();
-
-        // get the AutoNotify attribute from the field, and any associated data
-        var attributeData = fieldSymbol.GetAttributes().Single(ad => ad.AttributeClass?.Equals(attributeSymbol, SymbolEqualityComparer.Default) == true);
-        var overriddenNameOpt = attributeData.NamedArguments.SingleOrDefault(kvp => kvp.Key == "PropertyName").Value;
-        string propertyName = ChooseName(fieldName, overriddenNameOpt);
-        if (propertyName.Length == 0 || propertyName == fieldName)
+        var propertyName = propertySymbol.Name;
+        var propertyType = propertySymbol.Type.ToDisplayString();
+        var conversionMethod = propertySymbol.Type.SpecialType switch
         {
-            reportDiagnostic(fieldSymbol.Locations.FirstOrDefault());
+            SpecialType.System_Boolean => "GetBoolean",
+            SpecialType.System_SByte => "GetSByte",
+            SpecialType.System_Byte => "GetByte",
+            SpecialType.System_Int16 => "GetInt16",
+            SpecialType.System_UInt16 => "GetUInt16",
+            SpecialType.System_Int32 => "GetInt32",
+            SpecialType.System_UInt32 => "GetUInt32",
+            SpecialType.System_Int64 => "GetInt64",
+            SpecialType.System_UInt64 => "GetUInt64",
+            SpecialType.System_Decimal => "GetDecimal",
+            SpecialType.System_Single => "GetSingle",
+            SpecialType.System_Double => "GetDouble",
+            SpecialType.System_String => "GetString",
+            SpecialType.System_DateTime => "GetDateTime",
+
+            // TODO: Unwrap these and allow them.
+            SpecialType.System_Array => throw new NotImplementedException(),
+            SpecialType.System_Nullable_T => throw new NotImplementedException(),
+
+            // TODO: Test that this is an interface with the attribute and get a wrapper for it.
+            SpecialType.None => throw new NotImplementedException(),
+
+            _ => null,
+        };
+
+        if (conversionMethod is null)
+        {
+            reportDiagnostic(propertySymbol.DeclaringSyntaxReferences.First().SyntaxTree.GetLocation(propertySymbol.DeclaringSyntaxReferences.First().Span));
             return false;
         }
 
-        output.WriteOutProperty(fieldName, fieldType, propertyName);
+        output.WriteOutProperty(propertyName, propertyType, conversionMethod);
         return true;
-
-        static string ChooseName(string fieldName, TypedConstant overriddenNameOpt)
-        {
-            if (!overriddenNameOpt.IsNull)
-            {
-                return overriddenNameOpt.Value!.ToString() ?? string.Empty;
-            }
-
-            fieldName = fieldName.TrimStart('_');
-            return fieldName.Length switch
-            {
-                0 => string.Empty,
-                1 => fieldName.ToUpper(),
-                _ => fieldName[..1].ToUpper() + fieldName[1..]
-            };
-        }
     }
 }
