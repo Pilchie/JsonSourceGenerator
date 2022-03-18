@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Text;
 
 using Microsoft.CodeAnalysis;
 
@@ -12,7 +13,7 @@ internal static class SourceCodeWriterExtensions
         return output.WriteBlock($"namespace {type.ContainingNamespace.ToDisplayString()}");
     }
 
-    public static IDisposable WriteOutPartialTypeDeclaration(this SourceCodeWriter output,
+    public static IDisposable WriteOutTypeDeclaration(this SourceCodeWriter output,
         string accessibility,
         string modifiers,
         string typeKind,
@@ -20,42 +21,41 @@ internal static class SourceCodeWriterExtensions
         ImmutableArray<string> inheritsList,
         string[] implementsList)
     {
+        var sb = new StringBuilder();
+        if (!string.IsNullOrWhiteSpace(accessibility))
+        {
+            sb.Append(accessibility);
+        }
+
+        if (!string.IsNullOrWhiteSpace(modifiers))
+        {
+            sb.Append(' ');
+            sb.Append(modifiers);
+        }
+
+        sb.Append(' ');
+        sb.Append(typeKind);
+        sb.Append(' ');
+        sb.Append(typeName);
         var inheritanceString = string.Join(", ", inheritsList.Concat(implementsList));
 
         if (!string.IsNullOrWhiteSpace(inheritanceString))
         {
-            output.WriteLine($"{accessibility} {modifiers} {typeKind} {typeName} : {inheritanceString}");
+            sb.Append(" : ");
+            sb.Append(inheritanceString);
         }
-        else
-        {
-            output.WriteLine($"{accessibility} {modifiers} {typeKind} {typeName}");
-        }
+        output.WriteLine(sb.ToString());
         return output.BeginWriteBlock();
     }
 
-    public static void WriteOutPropertyChangedImplementation(this SourceCodeWriter output)
-    {
-        output.WriteLine("public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;");
-        output.WriteLine("protected void NotifyPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = \"\")");
-        using (output.Indent())
-        {
-            output.WriteLine("=> PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));");
-        }
-    }
-
-    public static void WriteOutProperty(this SourceCodeWriter output, string fieldName, string fieldType, string propertyName)
+    public static void WriteOutProperty(this SourceCodeWriter output, string propertyName, string propertyType, string conversionMethod)
     {
         output.WriteNewLine();
-        using (output.WriteBlock($"public virtual {fieldType} {propertyName}"))
+        using (output.WriteBlock($"public {propertyType} {propertyName}"))
         {
-            output.WriteLine($"get => this.{fieldName};");
-            using (output.WriteBlock("set"))
+            using (output.WriteBlock("get"))
             {
-                using (output.WriteBlock($"if (!System.Collections.Generic.EqualityComparer<{fieldType}>.Default.Equals(this.{fieldName}, value))"))
-                {
-                    output.WriteLine($"this.{fieldName} = value;");
-                    output.WriteLine($"NotifyPropertyChanged(nameof({propertyName}));");
-                }
+                output.WriteLine($"return _element.GetProperty(\"{propertyName}\").{conversionMethod}();");
             }
         }
     }
