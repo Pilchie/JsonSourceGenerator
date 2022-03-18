@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+
+  <!-- Repository settings -->  
+  <PropertyGroup>
+    <RepoRoot Condition="'$(RepoRoot)' == ''">$([MSBuild]::NormalizeDirectory('$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), 'global.json'))'))</RepoRoot>
+    <RepositoryEngineeringDir>$([MSBuild]::NormalizeDirectory('$(RepoRoot)', 'eng'))</RepositoryEngineeringDir>
+    <RepositoryToolsDir>$([MSBuild]::NormalizeDirectory('$(RepoRoot)', '.tools'))</RepositoryToolsDir>
+    <ArtifactsDir Condition="'$(ArtifactsDir)' == ''">$([MSBuild]::NormalizeDirectory('$(RepoRoot)', 'artifacts'))</ArtifactsDir>
+    <ArtifactsObjDir>$([MSBuild]::NormalizeDirectory('$(ArtifactsDir)', 'obj'))</ArtifactsObjDir>
+    <ArtifactsBinDir>$([MSBuild]::NormalizeDirectory('$(ArtifactsDir)', 'bin'))</ArtifactsBinDir>
+    <ArtifactsLogDir>$([MSBuild]::NormalizeDirectory('$(ArtifactsDir)', 'log', '$(Configuration)'))</ArtifactsLogDir>
+    <ArtifactsTmpDir>$([MSBuild]::NormalizeDirectory('$(ArtifactsDir)', 'tmp', '$(Configuration)'))</ArtifactsTmpDir>
+    <ArtifactsTestResultsDir>$([MSBuild]::NormalizeDirectory('$(ArtifactsDir)', 'TestResults', '$(Configuration)'))</ArtifactsTestResultsDir>
+  </PropertyGroup>
+
+  <!-- Project settings -->  
+  <PropertyGroup>
+    <OutDirName Condition="'$(OutDirName)' == ''">$(MSBuildProjectName)</OutDirName>
+
+    <BaseOutputPath Condition="'$(BaseOutputPath)' == ''">$([System.IO.Path]::GetFullPath('$(ArtifactsBinDir)$(OutDirName)\'))</BaseOutputPath>
+    <OutputPath Condition="'$(PlatformName)' == 'AnyCPU'">$(BaseOutputPath)$(Configuration)\</OutputPath>
+    <OutputPath Condition="'$(PlatformName)' != 'AnyCPU'">$(BaseOutputPath)$(PlatformName)\$(Configuration)\</OutputPath>
+
+    <BaseIntermediateOutputPath Condition="'$(BaseIntermediateOutputPath)' == ''">$([System.IO.Path]::GetFullPath('$(ArtifactsObjDir)$(OutDirName)\'))</BaseIntermediateOutputPath>
+    <IntermediateOutputPath Condition="'$(PlatformName)' == 'AnyCPU'">$(BaseIntermediateOutputPath)$(Configuration)\</IntermediateOutputPath>
+    <IntermediateOutputPath Condition="'$(PlatformName)' != 'AnyCPU'">$(BaseIntermediateOutputPath)$(PlatformName)\$(Configuration)\</IntermediateOutputPath>
+  </PropertyGroup>
+
+</Project>

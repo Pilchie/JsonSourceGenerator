@@ -1,0 +1,19 @@
+
+<Project>
+  <ItemGroup>
+    <PackageVersion Include="coverlet.collector" Version="3.1.0" />
+    <PackageVersion Include="DotNet.ReproducibleBuilds" Version="1.1.1" />
+    <PackageVersion Include="IndexRange" Version="1.0.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.3" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing.XUnit" Version="1.1.1-beta1.22056.1" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.0.1" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.0.1" />
+    <PackageVersion Include="Microsoft.CodeAnalysis" Version="4.0.1" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.0.0" />
+    <PackageVersion Include="Microsoft.VisualStudio.Threading.Analyzers" Version="17.0.64" />
+    <PackageVersion Include="Nerdbank.GitVersioning" Version="3.5.73-alpha" />
+    <PackageVersion Include="TunnelVisionLabs.ReferenceAssemblyAnnotator" Version="1.0.0-alpha.160" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.4.3" />
+    <PackageVersion Include="xunit" Version="2.4.1" />
+  </ItemGroup>
+</Project>

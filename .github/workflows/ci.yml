@@ -1,0 +1,57 @@
+name: Continuous Integration
+on:
+  push:
+    branches:
+      - "main"
+      - "release/*"
+    paths-ignore:
+    - 'docs/**'
+  pull_request:
+    paths-ignore:
+    - 'docs/**'
+jobs:
+  build:
+    name: Build and Test
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        configuration: [debug, release]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2.4.0
+        with:
+          fetch-depth: 0
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v1.9.0
+      - name: Try get cached dependencies
+        uses: actions/cache@v2.1.7
+        with:
+          path: ${{ github.workspace }}/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+      - name: Validate dependencies
+        run: dotnet restore --locked-mode --packages ${{ github.workspace }}/.nuget/packages
+      - name: Build
+        run: dotnet msbuild -p:Configuration=${{ matrix.configuration }} -graph -isolate -bl:artifacts/log/build.binlog
+      - name: Test
+        run: dotnet test --blame-crash --blame-hang --blame-hang-timeout 4m --logger "trx;LogFileName=TestResults.trx" --collect:"XPlat Code Coverage" --results-directory artifacts/test_results artifacts/bin/Tests/${{ matrix.configuration }}/net6.0/Tests.dll
+      - name: Upload Test Results
+        uses: dorny/test-reporter@v1.5.0
+        continue-on-error: true
+        if: success() || failure()
+        with:
+          name: ${{ matrix.os }} ${{ matrix.configuration }} Test Results
+          path: 'artifacts/test_results/*.trx'
+          reporter: dotnet-trx 
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v2.3.1
+        with:
+          name: ${{ matrix.os }}_${{ matrix.configuration }}
+          path: |
+            ./artifacts/bin/**/*
+            ./artifacts/log/**/*
+            ./artifacts/packages/**/*
+            ./artifacts/test_results/**/*
+          if-no-files-found: error

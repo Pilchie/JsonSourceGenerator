@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+
+  <Sdk Name="DotNet.ReproducibleBuilds.Isolated" Version="1.1.1" />
+  <!-- Import our custom build layout -->
+  <Import Project="eng\Settings.props" />
+
+  <!-- SDK settings -->
+  <PropertyGroup>
+    <!-- We set "allowPrerelease": true in our global.json file so don't warn us -->
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+  </PropertyGroup>
+
+  <!-- Nuget settings -->
+  <PropertyGroup>
+    <!-- Use Directory.Packages.props for nuget package versions -->
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Enable deterministic restore -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+     <!-- Enable faster restore times -->
+    <RestoreUseStaticGraphEvaluation>true</RestoreUseStaticGraphEvaluation>
+  </PropertyGroup>
+  
+  <!-- Compiler settings -->
+  <PropertyGroup>
+    <AnalysisLevel>latest</AnalysisLevel> <!-- Opt into more advanced analysis -->
+    <LangVersion>latest</LangVersion> <!-- Ensure all projects use the latest language version -->
+    <Nullable>enable</Nullable> <!-- Turn on nullable-reference-type analysis -->
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Allow us to use newer C# features -->
+    <PackageReference Include="IndexRange" />
+  </ItemGroup>
+  <!-- Nullable annotations for netstandard 2.0 -->
+  <PropertyGroup>
+    <AnnotatedReferenceAssemblyVersion>6.0.1</AnnotatedReferenceAssemblyVersion>
+    <GenerateNullableAttributes>true</GenerateNullableAttributes>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="TunnelVisionLabs.ReferenceAssemblyAnnotator" PrivateAssets="all" />
+    <PackageDownload Include="Microsoft.NETCore.App.Ref" Version="[$(AnnotatedReferenceAssemblyVersion)]" />
+  </ItemGroup>
+    
+  <ItemGroup>
+    <!-- Use reproduceable builds feature -->
+    <PackageReference Include="DotNet.ReproducibleBuilds" PrivateAssets="All"/>
+    <!-- Use package versioning -->
+    <PackageReference Include="Nerdbank.GitVersioning" PrivateAssets="All" />
+  </ItemGroup>
+    
+</Project>

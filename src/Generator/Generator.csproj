@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>AutoNotifyGenerator</PackageId>
+    <PackageVersion>$(NuGetPackageVersion)</PackageVersion>
+    <Authors>Jonathon Marolf</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Description>Sample source generator that implements INotifyPropertyChanged for you</Description>
+    <PackageTags>AutoNotifyGenerator, generator, template, sample</PackageTags>
+    <NoPackageAnalysis>true</NoPackageAnalysis>
+
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_AddGeneratorsToOutput</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+
+  <!-- Analyzers for this project -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" PrivateAssets="All" />
+  </ItemGroup>
+
+  <!-- Dependencies for this project -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+  </ItemGroup>
+
+  <Target Name="_AddGeneratorsToOutput">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="$(OutputPath)\$(AssemblyName).dll" PackagePath="analyzers/dotnet/cs" />
+    </ItemGroup>
+  </Target>
+
+</Project>
