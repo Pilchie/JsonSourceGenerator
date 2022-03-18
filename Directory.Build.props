@@ -33,7 +33,7 @@
   </ItemGroup>
   <!-- Nullable annotations for netstandard 2.0 -->
   <PropertyGroup>
-    <AnnotatedReferenceAssemblyVersion>6.0.1</AnnotatedReferenceAssemblyVersion>
+    <AnnotatedReferenceAssemblyVersion>6.0.3</AnnotatedReferenceAssemblyVersion>
     <GenerateNullableAttributes>true</GenerateNullableAttributes>
   </PropertyGroup>
   <ItemGroup>
