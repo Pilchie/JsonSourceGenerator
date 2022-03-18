@@ -1654,7 +1654,7 @@
           "xunit.extensibility.core": "[2.4.1]"
         }
       },
-      "AutoNotifyGenerator": {
+      "JSonElementWrapperGenerator": {
         "type": "Project",
         "dependencies": {
           "IndexRange": "1.0.0",
