@@ -12,13 +12,13 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <PackageId>AutoNotifyGenerator</PackageId>
+    <PackageId>JSonElementWrapperGenerator</PackageId>
     <PackageVersion>$(NuGetPackageVersion)</PackageVersion>
-    <Authors>Jonathon Marolf</Authors>
+    <Authors>Kevin Pilch</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <Description>Sample source generator that implements INotifyPropertyChanged for you</Description>
-    <PackageTags>AutoNotifyGenerator, generator, template, sample</PackageTags>
+    <Description>Source generator that wraps JSonElement in strongly typed interfaces without deserializing</Description>
+    <PackageTags>JsonElement, generator, template, sample</PackageTags>
     <NoPackageAnalysis>true</NoPackageAnalysis>
 
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_AddGeneratorsToOutput</TargetsForTfmSpecificContentInPackage>
