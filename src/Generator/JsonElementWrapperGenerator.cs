@@ -42,17 +42,7 @@ namespace {NamespaceNameText}
         .Collect()
         .SelectMany(static (groups, _) => groups);
 
-        var data = context.CompilationProvider.Select(
-            static (compilation, token) =>
-            {
-                var jsonElement = compilation.GetTypeByMetadataName("System.Text.Json.JsonElement");
-                var attribute = compilation.GetTypeByMetadataName(AttributeFullTypeName);
-                var systemObject = compilation.GetSpecialType(SpecialType.System_Object);
-                return (JsonElement: jsonElement, Attribute: attribute, Object: systemObject);
-            })
-            .Combine(interfaceSymbols.Collect());
-
-        context.RegisterSourceOutput(data, GenerateSource);
+        context.RegisterSourceOutput(interfaceSymbols.Collect(), GenerateSource);
     }
 
     private static bool IsInterfaceDeclarationWithAttribute(SyntaxNode node, CancellationToken _)
@@ -74,21 +64,10 @@ namespace {NamespaceNameText}
 
     private static void GenerateSource(
         SourceProductionContext context,
-        (
-            (INamedTypeSymbol? JsonElement, INamedTypeSymbol? Attribute, INamedTypeSymbol? Object) RequiredSymbols,
-            ImmutableArray<INamedTypeSymbol?> Interfaces
-        ) data)
+        ImmutableArray<INamedTypeSymbol?> interfaces)
     {
-        var attributeSymbol = data.RequiredSymbols.Attribute;
-        var jsonElementSymbol = data.RequiredSymbols.JsonElement;
-        var objectSymbol = data.RequiredSymbols.Object;
-        if (attributeSymbol is null || jsonElementSymbol is null || objectSymbol is null)
-        {
-            return;
-        }
-
-        var builder = new SourceCodeBuilder(attributeSymbol, jsonElementSymbol, objectSymbol, context.ReportDiagnostic);
-        foreach (var interfaceSymbol in data.Interfaces)
+        var builder = new SourceCodeBuilder(context.ReportDiagnostic);
+        foreach (var interfaceSymbol in interfaces)
         {
             if (interfaceSymbol is not null && builder.TryGenerateSource(interfaceSymbol, out var content))
             {

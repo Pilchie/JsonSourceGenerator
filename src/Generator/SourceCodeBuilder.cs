@@ -11,28 +11,18 @@ namespace Generator;
 
 public class SourceCodeBuilder
 {
-    private DiagnosticDescriptor UnableToGenerateName { get; } = new DiagnosticDescriptor(
-        id: "NSG001",
-        title: "Unable to generate property name.",
-        messageFormat: "Unable to generate property name.",
+    private DiagnosticDescriptor UnsupportedPropertyType { get; } = new DiagnosticDescriptor(
+        id: "JSG001",
+        title: "Unsupported property type.",
+        messageFormat: "Property type {0} is not supproted.",
         category: "SourceGenerator",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    private readonly INamedTypeSymbol _attributeSymbol;
-    private readonly INamedTypeSymbol _jsonElementSymbol;
-    private readonly INamedTypeSymbol _objectSymbol;
     private readonly Action<Diagnostic> _reportDiagnostic;
 
-    public SourceCodeBuilder(
-        INamedTypeSymbol attributeSymbol,
-        INamedTypeSymbol jsonElementSymbol,
-        INamedTypeSymbol objectSymbol,
-        Action<Diagnostic> reportDiagnostic)
+    public SourceCodeBuilder(Action<Diagnostic> reportDiagnostic)
     {
-        _attributeSymbol = attributeSymbol ?? throw new ArgumentNullException(nameof(attributeSymbol));
-        _jsonElementSymbol = jsonElementSymbol ?? throw new ArgumentNullException(nameof(jsonElementSymbol));
-        _objectSymbol = objectSymbol ?? throw new ArgumentNullException(nameof(objectSymbol));
         _reportDiagnostic = reportDiagnostic ?? throw new ArgumentNullException(nameof(reportDiagnostic));
     }
 
@@ -80,7 +70,7 @@ public class SourceCodeBuilder
                 {
                     if (symbol is IPropertySymbol propertySymbol)
                     {
-                        if (!TryWriteOutProperty(output, propertySymbol, location => _reportDiagnostic(Diagnostic.Create(UnableToGenerateName, location))))
+                        if (!TryWriteOutProperty(output, propertySymbol, location => _reportDiagnostic(Diagnostic.Create(UnsupportedPropertyType, location))))
                         {
                             return false;
                         }
