@@ -133,8 +133,12 @@ public class SourceCodeBuilder
             SpecialType.System_String => "GetString",
             SpecialType.System_DateTime => "GetDateTime",
 
-            // TODO: Unwrap these and allow them.
+            // TODO: Handle "BytesFromBase64", DateTimeOffset, Guid
+
+            // TODO: Unwrap and allow
             SpecialType.System_Array => throw new NotImplementedException(),
+
+            // TODO: Unwrap and allow (use TryGet and missing property for value types?)
             SpecialType.System_Nullable_T => throw new NotImplementedException(),
 
             // TODO: Test that this is an interface with the attribute and get a wrapper for it.
