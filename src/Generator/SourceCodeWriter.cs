@@ -14,7 +14,7 @@ public sealed class SourceCodeWriter : IDisposable
     public SourceCodeWriter()
     {
         var stringWriter = new StringWriter();
-        _indentingStringWriter = new IndentedTextWriter(stringWriter, "    "); ;
+        _indentingStringWriter = new IndentedTextWriter(stringWriter, "    ");
     }
 
     public void WriteLine(string s)
